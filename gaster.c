@@ -1815,6 +1815,21 @@ gaster_decrypt_file(usb_handle_t *handle, const char *src_filename, const char *
 	return ret;
 }
 
+static bool
+gaster_reset(usb_handle_t *handle) {
+{
+    init_usb_handle(handle, APPLE_VID, DFU_MODE_PID);
+    if(wait_usb_handle(handle, 0, 0, NULL, NULL)) {
+        send_usb_control_request_no_data(handle, 0x21, DFU_CLR_STATUS, 0, 0, 0, NULL);
+        reset_usb_handle(handle);
+        close_usb_handle(handle);
+    return true;
+}
+    return false;
+     }
+}
+
+
 int
 main(int argc, char **argv) {
 	char *env_usb_timeout = getenv("USB_TIMEOUT");
@@ -1832,6 +1847,10 @@ main(int argc, char **argv) {
 		if(gaster_checkm8(&handle)) {
 			ret = 0;
 		}
+	} else if(argc == 2 && strcmp(argv[1], "reset") == 0) {
+        	if(gaster_reset(&handle)) {
+            		ret = 0;
+       		}
 	} else if(argc == 4 && strcmp(argv[1], "decrypt") == 0) {
 		if(gaster_decrypt_file(&handle, argv[2], argv[3])) {
 			ret = 0;
@@ -1849,6 +1868,7 @@ main(int argc, char **argv) {
 #endif
 		puts("options:");
 		puts("pwn - Put the device in pwned DFU mode");
+		puts("reset - Reset dfu usb");
 		puts("decrypt src dst - Decrypt file using GID0 AES key");
 		puts("decrypt_kbag kbag - Decrypt KBAG using GID0 AES key");
 	}
