@@ -1,0 +1,83 @@
+name: Build gaster
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-libusb-linux:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+          sudo apt update
+          sudo apt install -y aria2 libusb-1.0-0-dev
+          sudo apt remove -y libssl-dev
+          aria2c https://www.openssl.org/source/openssl-1.1.1q.tar.gz
+          tar -zxvf openssl-1.1.1q.tar.gz
+          cd openssl-1.1.1q
+          ./Configure no-ssl3-method enable-ec_nistp_64_gcc_128 linux-x86_64 "-Wa,--noexecstack -fPIC"
+          make depend -j4
+          make -j4
+          sudo make install_sw install_ssldirs
+          sudo rm -rf /usr/local/lib/libcrypto.so* /usr/local/lib/libssl.so*
+          cd ..
+    - name: run make
+      run: make libusb -j$(nproc)
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3.1.0
+      with:
+          name: gaster-Linux
+          path: gaster
+
+          if-no-files-found: warn
+
+          retention-days: 30
+
+  build-macOS:
+
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: make macos -j$(sysctl -n hw.ncpu)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3.1.0
+        with:
+          name: gaster-Darwin
+          path: gaster
+
+          if-no-files-found: warn
+
+          retention-days: 30
+
+
+  build-ios:
+
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: make ios -j$(sysctl -n hw.ncpu)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3.1.0
+        with:
+          name: gaster-iOS
+          path: gaster
+
+          if-no-files-found: warn
+
+          retention-days: 30
