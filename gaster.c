@@ -1848,9 +1848,9 @@ main(int argc, char **argv) {
 			ret = 0;
 		}
 	} else if(argc == 2 && strcmp(argv[1], "reset") == 0) {
-        	if(gaster_reset(&handle)) {
-            		ret = 0;
-       		}
+		if(gaster_reset(&handle)) {
+			ret = 0;
+		}
 	} else if(argc == 4 && strcmp(argv[1], "decrypt") == 0) {
 		if(gaster_decrypt_file(&handle, argv[2], argv[3])) {
 			ret = 0;
@@ -1860,6 +1860,7 @@ main(int argc, char **argv) {
 			ret = 0;
 		}
 	} else {
+		printf("Version: " VERSION "\n");
 		printf("Usage: env %s options\n", argv[0]);
 		puts("env:");
 		puts("USB_TIMEOUT - USB timeout in ms");
