@@ -16,8 +16,8 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y aria2 libusb-1.0-0-dev xxd
-          sudo apt remove -y libssl-dev
+          sudo apt install -y aria2 xxd clang lld
+          sudo apt remove -y libssl-dev libusb-1.0-0-dev
           aria2c https://www.openssl.org/source/openssl-1.1.1q.tar.gz
           tar -zxvf openssl-1.1.1q.tar.gz
           cd openssl-1.1.1q
@@ -27,13 +27,20 @@ jobs:
           sudo make install_sw install_ssldirs
           sudo rm -rf /usr/local/lib/libcrypto.so* /usr/local/lib/libssl.so*
           cd ..
-      
+          aria2c https://github.com/libusb/libusb/releases/download/v1.0.26/libusb-1.0.26.tar.bz2
+          tar -xf libusb-1.0.26.tar.bz2
+          cd libusb-1.0.26
+          ./configure --disable-shared --enable-static --disable-udev LDFLAGS="-static"
+          make -j$(nproc)
+          sudo make install
+
       - name: Build
         run: |
-          make libusb -j4
+          make libusb-static -j$(nproc) LDFLAGS="-L/usr/local/lib -fuse-ld=lld" CC=clang LIBS="-ldl -lusb-1.0 -pthread -lcrypto"
+          strip gaster
           echo -n "$(git rev-parse HEAD | tr -d '\n')" > latest_build_sha.txt
           echo -n "$(git rev-list --count HEAD | tr -d '\n')" > latest_build_num.txt
-          
+
       - name: Upload versioning
         uses: actions/upload-artifact@v2
         with:

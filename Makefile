@@ -2,22 +2,23 @@
 
 CC ?= clang
 
-macos:
-	xxd -iC payload_A9.bin payload_A9.h
-	xxd -iC payload_notA9.bin payload_notA9.h
-	xxd -iC payload_notA9_armv7.bin payload_notA9_armv7.h
-	xxd -iC payload_handle_checkm8_request.bin payload_handle_checkm8_request.h
-	xxd -iC payload_handle_checkm8_request_armv7.bin payload_handle_checkm8_request_armv7.h
+macos: gen
 	xcrun -sdk macosx clang -mmacosx-version-min=10.9 -Weverything gaster.c lzfse.c -o gaster -framework CoreFoundation -framework IOKit -Os -DVERSION=\"$(VERSION)\"
 	$(RM) payload_A9.h payload_notA9.h payload_notA9_armv7.h payload_handle_checkm8_request.h payload_handle_checkm8_request_armv7.h
 
-libusb:
+gen:
 	xxd -iC payload_A9.bin payload_A9.h
 	xxd -iC payload_notA9.bin payload_notA9.h
 	xxd -iC payload_notA9_armv7.bin payload_notA9_armv7.h
 	xxd -iC payload_handle_checkm8_request.bin payload_handle_checkm8_request.h
 	xxd -iC payload_handle_checkm8_request_armv7.bin payload_handle_checkm8_request_armv7.h
+
+libusb: gen
 	$(CC) -Wall -Wextra -Wpedantic -DHAVE_LIBUSB gaster.c lzfse.c -o gaster -lusb-1.0 -lcrypto -pthread -ldl -Os -DVERSION=\"$(VERSION)\"
+	$(RM) payload_A9.h payload_notA9.h payload_notA9_armv7.h payload_handle_checkm8_request.h payload_handle_checkm8_request_armv7.h
+
+libusb-static: gen
+	$(CC) $(CFLAGS) $(LIBS) $(LDFLAGS) -Wall -Wextra -Wpedantic -DHAVE_LIBUSB gaster.c lzfse.c -o gaster -Os -static -DVERSION=\"$(VERSION)\"
 	$(RM) payload_A9.h payload_notA9.h payload_notA9_armv7.h payload_handle_checkm8_request.h payload_handle_checkm8_request_armv7.h
 
 payload:
