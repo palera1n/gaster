@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-libusb-linux:
+  build-libusb-linux-x86_64:
     runs-on: ubuntu-20.04
 
     steps:
@@ -18,9 +18,9 @@ jobs:
           sudo apt update
           sudo apt install -y aria2 xxd clang lld
           sudo apt remove -y libssl-dev libusb-1.0-0-dev
-          aria2c https://www.openssl.org/source/openssl-1.1.1q.tar.gz
-          tar -zxvf openssl-1.1.1q.tar.gz
-          cd openssl-1.1.1q
+          aria2c https://www.openssl.org/source/openssl-1.1.1s.tar.gz
+          tar -zxvf openssl-1.1.1s.tar.gz
+          cd openssl-1.1.1s
           ./Configure no-ssl3-method enable-ec_nistp_64_gcc_128 linux-x86_64 "-Wa,--noexecstack -fPIC"
           make depend -j4
           make -j4
@@ -52,7 +52,59 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3.1.0
         with:
-          name: gaster-Linux
+          name: gaster-Linux-x86_64
+          path: gaster
+
+          if-no-files-found: warn
+          retention-days: 30
+
+  build-libusb-linux-arm64:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y aria2 xxd clang lld crossbuild-essential-arm64 linux-headers-$(uname -r)
+          sudo apt remove -y libssl-dev libusb-1.0-0-dev
+          aria2c https://www.openssl.org/source/openssl-1.1.1s.tar.gz
+          tar -zxvf openssl-1.1.1s.tar.gz
+          cd openssl-1.1.1s
+          ./Configure no-ssl3-method enable-ec_nistp_64_gcc_128 linux-aarch64 "-Wa,--noexecstack -fPIC" --cross-compile-prefix=/usr/bin/aarch64-linux-gnu-
+          make depend -j4
+          make -j4
+          sudo make install_sw install_ssldirs
+          sudo rm -rf /usr/local/lib/libcrypto.so* /usr/local/lib/libssl.so*
+          cd ..
+          aria2c https://github.com/libusb/libusb/releases/download/v1.0.26/libusb-1.0.26.tar.bz2
+          tar -xf libusb-1.0.26.tar.bz2
+          cd libusb-1.0.26
+          ./configure --disable-shared --enable-static --disable-udev LDFLAGS="-static" --host=aarch64-linux-gnu --build=x86_64-linux-gnu
+          make -j$(nproc)
+          sudo make install
+
+      - name: Build
+        run: |
+          make libusb-static -j$(nproc) LDFLAGS="-L/usr/local/lib -fuse-ld=lld -L/usr/aarch64-linux-gnu/lib" CC="clang -target aarch64-linux-gnu -I/usr/aarch64-linux-gnu/include" LIBS="-ldl -lusb-1.0 -pthread -lcrypto"
+          aarch64-linux-gnu-strip gaster
+          echo -n "$(git rev-parse HEAD | tr -d '\n')" > latest_build_sha.txt
+          echo -n "$(git rev-list --count HEAD | tr -d '\n')" > latest_build_num.txt
+
+      - name: Upload versioning
+        uses: actions/upload-artifact@v2
+        with:
+          name: Versioning
+          path: |
+            ${{ github.workspace }}/latest_build_sha.txt
+            ${{ github.workspace }}/latest_build_num.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3.1.0
+        with:
+          name: gaster-Linux-aarch64
           path: gaster
 
           if-no-files-found: warn
