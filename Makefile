@@ -1,6 +1,7 @@
 .PHONY: macos libusb ios payload clean
 
 CC ?= clang
+VERSION = $(shell git rev-parse HEAD | tr -d '\n')-$(shell git rev-list --count HEAD | tr -d '\n')
 
 macos: gen
 	xcrun -sdk macosx clang -mmacosx-version-min=10.9 -Weverything gaster.c lzfse.c -o gaster -framework CoreFoundation -framework IOKit -Os -DVERSION=\"$(VERSION)\"
